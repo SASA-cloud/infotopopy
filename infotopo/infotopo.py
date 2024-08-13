@@ -313,7 +313,7 @@ For example if dimension_max=16 , then the procedure will extract all "sliding" 
 ################################################################
     """
 compute the joint probability distribution of all variables
-To avoid to have to explore all  possible  probability (sparse data)
+To avoid to have to explore all possible  probability (sparse data)
 we encode probability as dictionanry, each existing probability has a key
 
 TO DO: import the new simpler function that compute probability and compare
@@ -322,17 +322,17 @@ TO DO: import the new simpler function that compute probability and compare
     def _compute_probability(self, data_matrix):
         probability={}
         # in case the data_matrix has a single variable-dimension reshape the vector to matrix
-        if len(data_matrix.shape)==1 :
+        if len(data_matrix.shape)==1 : # 如果只有一维，转换为二维
             data_matrix=np.reshape(data_matrix,(data_matrix.shape[0],1))
-        for row in range(data_matrix.shape[0]):
+        for row in range(data_matrix.shape[0]): # 对batch中的每个数据
             x=''
-            for col in range(0,data_matrix.shape[1]):
-                x= x+str(int((data_matrix[row,col])))
-            probability[x]=probability.get(x,0)+1
+            for col in range(0,data_matrix.shape[1]): # 对每列
+                x= x+str(int((data_matrix[row,col]))) # 拼接字符串 # 只取int值。这里是为了将数据转换为字符串
+            probability[x]=probability.get(x,0)+1 # 算x出现的次数
         Nbtot=0
-        for i in probability.items():
+        for i in probability.items(): # 计算总数
             Nbtot=Nbtot+i[1]
-        for i,j in probability.items():
+        for i,j in probability.items(): # 计算概率
                probability[i]=j/float(Nbtot)
         return probability     
 
@@ -446,22 +446,29 @@ https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-a
 # ##################################################################################
 # ###############    COMPUTE ENTROPY                         #######################
 # ##################################################################################
-
+    # 从概率计算熵
+    # 这个函数首先做一些从 总体probability中拆除 组合数probability的工作，然后分别计算每个组合数的熵
     def _compute_entropy(self, probability):
         ntuple=[]
         ntuple1_input=[]
-        Nentropie={}
+        Nentropie={} # 最终返回的结果，多个组合的熵 的字典
         self._decode(0, self.dimension_tot, self.dimension_max, ntuple1_input)
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
         logger = logging.getLogger("compute Proba-Entropy")
         print("Percent of tuples processed : 0")
-        for x in range(0,(2**self.dimension_max)-1):
-            if self.dimension_max> 10 :
+        for x in range(0,(2**self.dimension_max)-1): # 一个包含n个元素的集合的子集个数（不包含空集）
+            # 对于每一种子集形式，计算其熵
+            if self.dimension_max> 10 : # 意思如果小于10，不算很大就不需要有进度
+                #  这段代码每处理 pow(2, self.dimension_max) / 100 个组合时，记录一次进度。logger.info 会输出当前处理的百分比进度。
                  if (x) % int(pow(2,self.dimension_max) / 100) == 0:
                      logger.info("PROGRESS: at percent #%i"  % (100*x/pow(2,self.dimension_max)))
             ntuple=[]
             orderInf=0
+            # decode和decode_all 将整数 x 解码为 n 个元素中选取 k 个元素的组合，并将结果存储在 combinat 列表中。
             self._decode_all(x,self.dimension_max,orderInf,ntuple)
+            # 现在ntuple是 list形式的组合数
+
+            # 构建 probability2（面向每个组合的）
             tuple_code=()
             probability2={}
             for z in range(0,len(ntuple)):
@@ -479,8 +486,11 @@ https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-a
                         if length<(len(ntuple)-1):
                             length=length+1
                 probability2[Codeproba]=probability2.get(Codeproba,0)+probability.get(x,0)
+            
+            # 计算熵
             Nentropie[tuple_code]=0
 # to change: the program computes too many times the entropy:  m*2**n instead of
+            # 这么简单的就直接用那个 单维度的概率计算熵，所以不同之处在于 probability的计算
             for x,y in probability2.items():
                 Nentropie[tuple_code]=Nentropie.get(tuple_code,0) + self._information(probability2[x])
             probability2={}
@@ -536,7 +546,7 @@ https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-a
 
 
 
-
+    # joint entropy
     def simplicial_entropies_decomposition(self, data_matrix) :
         self._validate_parameters()
         data_matrix = self._resample_matrix(data_matrix)
@@ -572,7 +582,7 @@ https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-a
 ######                FIGURE 4                  #########################
 #########################################################################
 #########################################################################
-                                   
+    # 画图                         
     def entropy_simplicial_lanscape(self, Nentropie):
         num_fig = 1
         plt.figure(num_fig,figsize=(18,10))
